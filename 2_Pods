@@ -1,0 +1,66 @@
+# Create K8s namespace, and create first pod
+
+# Display 4 default namespaces
+kubectl get ns
+
+# Create alias for faster use
+alias k=kubectl
+
+# Create new namespace
+k create ns myns
+
+# Display namespaces
+k get ns
+
+
+# Looks for pod in the default namespace
+k get pod
+
+# Looks for pod in the specific kube-system namespace
+k get pod -n kube-systemd
+
+# Displays more information about pod
+k get pod -n kube-system -o wide
+
+# Verify docker is running as a service
+systemctl status docker
+
+# Verify kubelet is running as a service
+systemctl status kubelet
+
+# Displaying utilities running
+ps -ef
+
+
+
+# -------------------------------------------
+
+
+
+# First Pod is created
+k run practicepod --image=sebastiango/firstimage:2.0 --port=8080
+
+# View how the pod is created
+k get po
+
+# Troubleshooting, pod is not changing from Container Creating
+kubectl get ds -n kube-system
+# all displayed Available
+kubectl get pods -n kube-system -o wide | grep weave
+# all displayed as Running
+
+# First Pod is created
+k run practicepod --image=sebastiango/firstimage:2.0 --port=8080
+
+# View how the pod is created
+k get po
+
+# Display detailed information
+k get po -o wide
+
+# Show basic logs of podpractice pod
+k logs podpractice
+
+# Login to Pod podpractice
+k exec -it podpractice bash
+
