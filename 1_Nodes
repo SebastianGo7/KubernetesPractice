@@ -1,0 +1,72 @@
+# Kubernetes Practice 
+# Create a 3 Nodes Lab Environment
+# Master node, worker node 1, worker node 2
+
+# Follwing commands on Master, Worker1, Worker2
+# Change actual Hostname and to set this hostname also set inside of /etc/hostname file content to master, worker1 and worker2
+sudo -s
+hostname master
+vim /etc/hostname
+bash
+
+# Create directory and set initial config of logs
+sudo mkdir /etc/docker
+cat <<EOF | sudo tee /etc/docker/daemon.json
+{
+"exec-opts":["native.cgroupdriver=systemd"],
+"log-driver":"json-file",
+"log-opts": {
+ "max-size": "100m"
+},
+"storage-driver":"overlay2"
+}
+EOF
+
+# Eable docker, reload daemon and restart docker
+sudo systemctl enable docker
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+sudo swapoff -a
+
+
+#----------------------------------------------------
+
+# Initialize Master Node and let Workers Join
+
+# On Master Node
+# Reset kubeadm, initialize kubeadm, copy file and change ownership of files
+kubeadm reset
+kubeadm init
+mkdir -p $HOME/.
+
+
+#This is displayed as return of kubeadm init and must be called
+mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# Integrate Weave works which assists in network 
+kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+
+
+# Display actual nodes, it only displays the master to be ready
+kubectl get nodes
+
+# On worker node 1 and worker node 2
+# This is displayed after running the kubeadm init command
+kubeadm join 172.31.42.54:6443 --token 2rvrcd.31ase3kyf4d84xn9 \
+        --discovery-token-ca-cert-hash sha256:9b466fb946f7b6497ba83e5335041488a71da405e2602f9e7548ee489e5ba67f 
+
+
+# On Master Node, 
+# now all 3 nodes are shown as Ready
+kubectl get nodes
+
+# This also returns the internal IPs etc
+kubectl get no -o wide
+
+# Displays all k8s objects
+kubectl api-resources
+
+
+
