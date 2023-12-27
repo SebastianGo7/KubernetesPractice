@@ -1,0 +1,118 @@
+
+# Create Pod with dry run created yaml file
+
+
+# Delete previous pod
+k delete po podpractice
+k get po
+
+# In real life there are no standalone pods used
+# Instead use --dry-run=client to first create an yaml file
+k run first --image=sebastiango/firstimage:2.0 --port=8080 --dry-run=client -o yaml > pod.yaml
+
+# Display created yaml file 
+vim pod.yaml
+
+# Create actual pod with that yaml file
+k apply-f pod.yaml
+k get po
+
+# Display further pod information to debug
+k describe po podpractice
+
+# Display pods, diplay namespaces, delete pod podpractice, 
+k get po
+k get ns
+k delete po podpractice
+
+# Change namespace to previously created namespace myns in yaml file
+vim pod.yaml
+# inside
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: podpractice
+  name: podpractice
+  namespace: myns
+spec:
+  containers:
+  - image: sebastiango/firstimage:2.0
+    name: podpractice
+    ports:
+    - containerPort: 8080
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+# Creating a new pod in that namespace
+k apply-f pod.yaml
+
+# Running pod is not displayed here
+k get po
+# But it is displayed here within its namespace
+k get po -n myns
+
+
+
+# ---------------------------------------------------------------------
+
+
+# Controller checks continuously if pods are running
+# from deployment objects
+
+# Create an deployment object with nginx image
+k create deploy mydeploy --image=nginx:latest --port=80 --dry-run=client -o yaml > deploy.yaml
+
+# Show all Pods
+k get all
+
+# Deploy that deployment object and display new created objects
+k apply -f deploy.yaml
+k get all
+
+# Display deploy.yaml file with 2 replicas
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: mydeploy
+  name: mydeploy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mydeploy
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: mydeploy
+    spec:
+      containers:
+      - image: nginx:latest
+        name: nginx
+        ports:
+        - containerPort: 80
+        resources: {}
+status: {}
+
+
+# Only display deployments
+k get deploy
+
+# Only display replica sets
+k get rs
+
+# Display only the pods
+k get po
+
+# If one specific pod gets deleted of the deployment another one is created
+k delete po mydeploy-67695cdff7-szmzs
+k get po
+
+
