@@ -1,0 +1,161 @@
+
+# Scale Applications
+
+# Three Ways to Scale applications
+# 1) change deployment file, e.g. change here from 2 to 10
+# Then apply the application 
+vi deploy.yaml
+k apply -f deploy.yaml
+k get all
+
+# 2) Scale through --replicas flag
+k scale deploy mydeploy --replicas=10
+k get all
+k scale deploy mydeploy --replicas=2
+k get all
+
+
+# 3) Scale through the life object yaml file, under spec
+k edit deploy mydeploy
+k get all
+
+
+
+#----------------------------------------------------
+# Practice Autoscale, Rollouts
+
+# Create Horizontalpod autoscaler, and show it
+k autoscale deploy mydeploy --min=2 --max=10 --cpu-percent=80
+k get hpa
+
+# Show all resources
+k get all
+# Display more information of pod
+k describe po mydeploy-67695cdff7-6clld
+# Shows status of deployment
+k rollout status deploy mydeploy
+# Display Rollout history of deployment
+k rollout history deploy mydeploy
+
+
+# Release new image of deployment
+# to get the change cause is set with --record flag
+# Describe pod and its history and observe version change
+k set image deploy mydeploy nginx=nginx:1.8.1 --record
+k get all
+k describe po mydeploy-64bbc5498-mqx6z
+k rollout history deploy mydeploy
+
+# Release new version of deployment and inspect it
+k set image deploy mydeploy nginx=1.9.1 --record
+k get all
+k rollout history deploy mydeploy
+k rollout status deploy mydeploy
+k get all
+k describe po mydeploy-54cbd4f54f-fzqqr 
+
+# Undo rollout of second revision version
+k rollout undo deploy mydeploy --to-revision=2
+k rollout history deploy mydeploy
+k get all
+k describe po mydeploy-64bbc5498-c44xw
+#
+
+
+# Some Commands with their Outputs: 
+k rollout history deploy mydeploy
+# Output:
+deployment.apps/mydeploy 
+REVISION  CHANGE-CAUSE
+1         <none>
+3         kubectl set image deploy mydeploy nginx=1.9.1 --record=true
+4         kubectl set image deploy mydeploy nginx=nginx:1.9.1 --record=true
+5         kubectl set image deploy mydeploy nginx=nginx:1.8.1 --record=true
+
+
+k get all
+# Output:
+NAME                           READY   STATUS             RESTARTS      AGE
+pod/first                      0/1     ImagePullBackOff   0             42h
+pod/first2                     0/1     ImagePullBackOff   0             42h
+pod/first3                     1/1     Running            5 (11h ago)   42h
+pod/mydeploy-64bbc5498-c44xw   1/1     Running            0             3m36s
+pod/mydeploy-64bbc5498-cgvdw   1/1     Running            0             3m40s
+pod/mydeploy-64bbc5498-g52wp   1/1     Running            0             3m40s
+pod/mydeploy-64bbc5498-gkgcz   1/1     Running            0             3m36s
+pod/mydeploy-64bbc5498-kz82c   1/1     Running            0             3m35s
+pod/mydeploy-64bbc5498-ldb5w   1/1     Running            0             3m40s
+pod/nginx                      0/1     Completed          0             42h
+
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   42h
+
+NAME                       READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/mydeploy   6/6     6            6           39h
+
+NAME                                  DESIRED   CURRENT   READY   AGE
+replicaset.apps/mydeploy-54cbd4f54f   0         0         0       5m26s
+replicaset.apps/mydeploy-64bbc5498    6         6         6       13m
+replicaset.apps/mydeploy-67695cdff7   0         0         0       39h
+replicaset.apps/mydeploy-6d9fcdd8f5   0         0         0       9m50s
+
+NAME                                           REFERENCE             TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/mydeploy   Deployment/mydeploy   <unknown>/80%   2         10        6          13h
+
+
+k describe po mydeploy-64bbc5498-c44xw
+# Output:
+Name:         mydeploy-64bbc5498-c44xw
+Namespace:    default
+Priority:     0
+Node:         worker1/172.31.39.234
+Start Time:   Thu, 14 Dec 2023 12:06:47 +0000
+Labels:       app=mydeploy
+              pod-template-hash=64bbc5498
+Annotations:  <none>
+Status:       Running
+IP:           10.44.0.12
+IPs:
+  IP:           10.44.0.12
+Controlled By:  ReplicaSet/mydeploy-64bbc5498
+Containers:
+  nginx:
+    Container ID:   docker://763973cba6c980fc67b807b4b76f08e23653d30106fe35c027cec59cffab05ff
+    Image:          nginx:1.8.1
+    Image ID:       docker-pullable://nginx@sha256:9b3e9f189890ef9d6713c3384da3809731bdb0bff84e7b68da330ebadf533085
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Thu, 14 Dec 2023 12:06:51 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-kdjc7 (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             True 
+  ContainersReady   True 
+  PodScheduled      True 
+Volumes:
+  kube-api-access-kdjc7:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age    From               Message
+  ----    ------     ----   ----               -------
+  Normal  Scheduled  4m39s  default-scheduler  Successfully assigned default/mydeploy-64bbc5498-c44xw to worker1
+  Normal  Pulling    4m38s  kubelet            Pulling image "nginx:1.8.1"
+  Normal  Pulled     4m35s  kubelet            Successfully pulled image "nginx:1.8.1" in 2.015143165s
+  Normal  Created    4m35s  kubelet            Created container nginx
+  Normal  Started    4m35s  kubelet            Started container nginx
+root@master:/home/labsuser# 
+
