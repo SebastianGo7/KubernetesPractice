@@ -1,0 +1,69 @@
+# Nodeport ClusterIP
+
+# Delete previously created deployment
+k delete deployment mydeploy
+k get all
+
+# Application from user to web Port 
+# -> Using NodePort
+# Web Pod communicates to db Pod 
+# -> Using cluster ip
+ 
+#
+git clone https://github.com/rskTech/serviceDemo.git
+cd serviceDemo/
+ls
+cd build/
+
+# Going through Python application to understand it
+#
+vim app.py
+ls
+cd ..
+cd deploy/
+ls
+
+
+# Analize given yaml files
+vim db-pod.yml
+vim db-svc.yml
+vim web-pod.yml
+vim web-svc.yml
+
+# Create database pod and a Cluster IP Service
+k apply -f db-pod.yml
+k get all
+k apply -f db-svc.yml
+k get all
+
+# Create web pod and NodePort Service
+k apply -f web-pod.yaml
+k get all
+k apply -f web-svc.yml
+k get all
+
+
+
+# Log in to database, with the ip from worker 1
+k get no -o wide
+curl 172.31.39.234:32257/init
+
+
+# Passing user id data and accessing it
+curl -i -H "Content-Type: application/json" -X POST -d '{"uid": "1", "user":"Frank Anton"}' http://172.31.39.234:32257/users/add
+# Returned message contains various information, Content-Type, Content-Length, Server, Date
+
+# Check if data is in Data cache
+curl -i -H "Content-Type:application/json" -X POST -d '{"uid": "2", "user":"Peter"}' http://172.31.39.234:32257/users/add
+
+# User records of the names are returned
+curl 172.31.39.234:32257/users/1
+curl 172.31.39.234:32257/users/2
+
+# Delete previously created resources
+k delete po mysql web1
+k delete svc mysql web
+k delete hpa mydeploy
+k get all
+
+
