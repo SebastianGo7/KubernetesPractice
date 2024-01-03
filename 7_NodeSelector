@@ -1,0 +1,62 @@
+# NodeSelector Practice
+
+# Set alias, and check ressources Status
+alias k=kubectl
+k get all
+
+
+# Show labels of nodes
+k get no --show-labels
+
+# Label worker 1, and see it
+k label no worker1 hdd=ssd
+k get no --show-labels
+
+# Add nodeSelector: hdd:ssd 
+vi pod.yaml
+# Inside
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: podpractice
+  name: podpractice
+  namespace: myns
+spec:
+        nodeSelector:
+                hdd: ssd
+  containers:
+  - image: sebastiango/firstimage:2.0
+    name: podpractice
+    ports:
+    - containerPort: 8080
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+# Create pod
+k apply -f pod.yaml
+
+# podpractice pod is running on worker 1 as it should
+k get po
+k get po -o wide
+k get no --show-labels
+
+
+# Remove label from worker1 pod
+k label no worker1 hdd-
+k get no --show-labels
+k delete po first
+
+# Try to create pod, but it stays in a pending state
+# because there is no fitting pod available
+k apply -f pod.yaml
+k get po
+k descrine po first
+
+# Remove created pod
+k delete pod podpractice
+k get po
+
