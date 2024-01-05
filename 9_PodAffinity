@@ -1,0 +1,49 @@
+# Pod Affinity
+
+# create nginx Pod
+k run nginx --image=nginx
+k get po -o wide
+k get no --show-labels
+
+# Po label is run=nginx
+k get po --show-labels
+
+# Replace Node affinity with Pod affinity
+vim pod.yaml
+# inside
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: podpractice
+  name: podpractice
+spec:
+  affinity:
+          podAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                          - labelSelector:
+                                  matchExpressions:
+                                          - key: run
+                                            operator: In
+                                            values:
+                                                  - nginx
+                            topologyKey: kubernetes.io/hostname
+
+
+  containers:
+  - image: sebastiango/firstimage:2.0
+    name: podpractice
+    ports:
+    - containerPort: 8080
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+# Pod should be created on node which has nginx pod 
+k apply -f pod.yaml
+
+# First Pod was running on worker 2, second one created there as well
+k get po -o wide
+
