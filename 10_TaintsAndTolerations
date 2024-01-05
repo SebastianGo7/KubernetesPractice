@@ -1,0 +1,91 @@
+# Taint and Tolerations
+
+# Observe actual Taint configurations
+k get no
+k describe no worker1
+k describe no worker2
+k describe no master
+
+
+# Change Add Taint with NoSchedule effect of worker 1
+k taint no worker1 hdd=ssd:NoSchedule
+k descibe no worker1
+k get no
+
+# Disable new schedulings on worker 2
+k cordon worker2
+
+# Remove the previously added pod affinity
+vim pod.yaml
+# inside
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: podpractice
+  name: podpractice
+spec:
+  containers:
+  - image: sebastiango/firstimage:2.0
+    name: podpractice
+    ports:
+    - containerPort: 8080
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+# Try creating Pod
+k apply -f pod.yaml
+
+# Created pod is in a pending state,
+# because there is no available node
+k get po 
+k describe po podpractice
+
+# Delete this pod
+k delete po podpractice
+
+
+
+# Add the toleration attribute
+vim pod.yaml
+# inside
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: podpractice
+  name: podpractice
+spec:
+  tolerations:
+  - key: hdd
+    operator: Equal
+    value: ssd
+    effect: NoSchedule
+
+  containers:
+  - image: sebastiango/firstimage:2.0
+    name: podpractice
+    ports:
+    - containerPort: 8080
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+# Recreate the pod podpractice, it is running now on worker 1
+k apply -f pod.yaml
+k get po
+k get po -o wide
+k get no
+
+# Untaint worker1
+k taint no worker1 hdd-
+
+# Enable scheduling for worker 2 again
+k uncordon worker2
+k get no
+
