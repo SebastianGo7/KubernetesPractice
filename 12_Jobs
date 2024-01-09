@@ -1,0 +1,152 @@
+# Creating jobs
+
+# Create a job
+k create job myjob --image=ubuntu:20.04 --dry-run=client -o yaml -- /bin/sh -c "sleep 10" > job.yaml
+
+# Observe created yaml file
+vim job.yaml
+# Inside
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: null
+  name: myjob
+spec:
+  template:
+    metadata:
+      creationTimestamp: null
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - sleep 10
+        image: ubuntu:20.04
+        name: myjob
+        resources: {}
+      restartPolicy: Never
+status: {}
+
+
+
+k get job
+k get all
+k apply -f job.yaml
+
+#
+watch kubectl get all
+
+
+# completions is set to 3 so three pods are created
+# and each is run for 10 seconds one after another
+vim job.yaml
+# inside
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: null
+  name: myjob
+spec:
+  completions: 3      
+  template:
+    metadata:
+      creationTimestamp: null
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - sleep 10
+        image: ubuntu:20.04
+        name: myjob
+        resources: {}
+      restartPolicy: Never
+status: {}
+
+
+k delete job myjob
+k apply -f job.yaml
+# Observe how 3 jobs are created one after another
+watch kubectl get all
+
+
+# Run Jobs parallel, add more completions and
+# parallelism is set to three
+vim job.yaml
+# inside
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: null
+  name: myjob
+spec:
+  completions: 10
+  parallelism: 3
+  template:
+    metadata:
+      creationTimestamp: null
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - sleep 10
+        image: ubuntu:20.04
+        name: myjob
+        resources: {}
+      restartPolicy: Never
+status: {}
+
+
+k delete job myjob
+k apply -f job.yaml
+# Observe how three jobs 
+watch kubectl get all
+
+# Delete previously created job
+k delete job myjob
+k get all
+
+
+#----------------------------------------------------
+# Create a Crone job
+# crontab.guru website helps
+k create cj mycj --image=ubuntu:20.04 --schedule="*/1 * * * *" --dry-run=client -o yaml -- /bin/sh -c "sleep 10" > cj.yaml
+
+vim cj.yaml
+# inside
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  creationTimestamp: null
+  name: mycj
+spec:
+  jobTemplate:
+    metadata:
+      creationTimestamp: null
+      name: mycj
+    spec:
+      template:
+        metadata:
+          creationTimestamp: null
+        spec:
+          containers:
+          - command:
+            - /bin/sh
+            - -c
+            - sleep 10
+            image: ubuntu:20.04
+            name: mycj
+            resources: {}
+          restartPolicy: OnFailure
+  schedule: '*/1 * * * *'
+status: {}
+
+# Apply cj, on every minute a job gets created and runs for 10 sek
+k apply -f cj.yaml
+watch kubectl get all
+
+# Delete created cj mycj
+k delete cj mycj
+k get all
+
