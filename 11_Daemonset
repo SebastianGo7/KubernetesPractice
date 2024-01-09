@@ -1,0 +1,59 @@
+# Daemonset
+# one pod on each node
+
+#
+k get no
+k get ds
+
+# There are daemon sets running on the kube system
+k get ds -n kube-system
+k get ds -n kube-system -o wide
+
+# Create Daemonset (shorter version)
+# Source: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
+vim ds.yaml
+# inside
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-elasticsearch
+  labels:
+    k8s-app: fluentd-logging
+spec:
+  selector:
+    matchLabels:
+      name: fluentd-elasticsearch
+  template:
+    metadata:
+      labels:
+        name: fluentd-elasticsearch
+    spec:
+      tolerations:
+      # these tolerations are to have the daemonset runnable on control plane nodes
+      # remove them if your control plane nodes should not run pods
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: fluentd-elasticsearch
+        image: quay.io/fluentd_elasticsearch/fluentd:v2.5.2
+
+
+# Creating new node
+k apply -f ds.yaml
+k get ds
+k get po -o wide
+
+
+# Delete previously created ressources
+k describe no master
+k get ds
+k get all
+k delete ds fluentd-elasticsearch
+k get all
+k delete po podpractice
+k get all
+
