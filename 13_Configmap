@@ -1,0 +1,110 @@
+# Configmap
+#
+# Data is stored into config file,
+
+# Creating a Config Map with a from-literal
+k create cm mycm mycm --from-literal=dbport=8080 --from-literal=logfile=myapp.log
+k describe cm mycm
+
+# Add Config map data
+vim pod.yaml
+# inside
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: podpractice
+  name: podpractice
+spec:
+  containers:
+  - image: sebastiango/firstimage:2.0
+    name: podpractice
+    ports:
+    - containerPort: 8080
+    env:
+    - name: DBPORT
+      valueFrom:
+              configMapKeyRef:
+                      name: mycm
+                      key: dbport
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+
+# Apply new change
+k apply -f pod.yaml
+k get po
+
+# Login to pod
+k exec -it podpractice bash
+# inside, command "env" creates the DBPORT=8080
+
+# Delete created pod
+k delete po podpractice
+
+#---------------------------------------------
+
+# Create a Config file and set key value pairs inside
+vim myconfig.ini
+# inside
+logfile=myapp.log
+dbport=8080
+dbname=emp
+dnhost=192.168.0.5
+
+# Create configmap
+k create cm mycm1 --from-file=myconfig.ini
+k describe cm mycm1
+
+
+# Create a volume from myconfigmap
+vim pod.yaml
+# inside
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: podpractice
+  name: podpractice
+spec:
+  containers:
+  - image: sebastiango/firstimage:2.0
+    name: podpractice
+    ports:
+    - containerPort: 8080
+    volumeMounts:
+            - name: myvol
+              mountPath: /etc/lala
+    env:
+    - name: DBPORT
+      valueFrom:
+              configMapKeyRef:
+                      name: mycm
+                      key: dbport
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+  volumes:
+          - name: myvol
+            configMap:
+                    name: mycm1
+status: {}
+
+
+# Apply pod.yaml file
+k apply -f pod.yaml
+
+
+# Login to podpractice
+k exec -it podpractice bash
+# inside, check directory "cd /etc/" there it is mounted
+# inside, in "cd/etc/lala here is the config.ini file
+
+
+# Delete pod
+k delete po podpractice
+
