@@ -1,0 +1,71 @@
+# PV and PVC
+
+# See k8s documentation
+k explain pv.spec
+k explain pv.spec.capacity
+
+# Create persistent volume yaml file
+vim pv.yaml
+# inside
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+        name: mypv
+spec:
+    accessModes:
+            - ReadWriteMany
+    storageClassName: normal
+    capacity:
+            storage: 2G
+    hostPath:
+            path: /opt
+
+# Create pod through pod.yaml file
+# and observe that status is available
+k apply -f pv.yaml
+k get pv
+
+# Create persistence volume claim yaml file
+vim pvc.yaml
+# inside
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+        name: mypvc
+spec:
+        accessModes:
+                - ReadWriteMany
+        storageClassName: normal
+        resources:
+                requests:
+                        storage: 2G 
+
+# Pv is still available 
+k get pv
+
+# Observe that no resources are available in default namespace
+k get pvc
+
+# Creating the pod
+k apply -f pvc.yaml
+
+# Observe that now the status is bond
+k get pv
+
+# Create pod yaml file
+vim pod.yaml
+# inside
+
+# Create pod
+k apply -f pod.yaml
+
+# Login to pod, there observe volume "cd /etc/mycerts/"
+k exec -it podpractice bash
+
+
+# Delete Pod and Volume
+k delete po podpractice
+k delete pvc mypvc
+k delete pv mypv
+k get all
+
