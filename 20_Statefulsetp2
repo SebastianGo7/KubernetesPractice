@@ -1,0 +1,119 @@
+# Statefulset part 2 
+# After pv. yaml is applied in Statefulsetp1 po is created
+
+
+# pvc is still pending
+k get pvc
+k get pv
+
+# It started creating
+k get po
+
+# First pvc is created and status is bond
+k get pvc
+
+# k create another pod
+vim pv1.yaml
+# inside
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mypv1
+spec:
+  capacity:
+    storage: 3Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: "my-storage-class"
+  local:
+    path: /opt
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - worker1
+
+
+# Create pod
+k apply -f pv1.yaml
+
+# A second pvc is bonded now
+# a third one is created now which is pending
+k get pvc
+# two volumes exist now
+k get pv
+# and three pods
+k get po
+
+
+
+# Create third pod
+vim pv2.yaml
+# inside
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mypv2
+spec:
+  capacity:
+    storage: 4Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: "my-storage-class"
+  local:
+    path: /opt
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - worker1
+
+
+
+# Create third pod
+k apply -f pv2.yaml
+k get po
+
+# Three PV are on retain now, and 3 pvc are Bond
+k get pvc
+k get pv
+
+
+
+# There are three pods 
+k get sts
+k scale sts web --replicas=10
+k get sts
+
+# Next pod is pending, there is no pv for it
+k get po
+k get pvc
+k get pc
+k get po
+
+
+# If pod web-2 is deleted, it will be created again as web-2
+# web-3 stays in pending 
+k delete po web-2
+k get po
+
+
+
+# Delete resources
+k get all
+k delete sts web
+k get pvc
+k delete pvc www-web-3 www-web2- www-web-1 www-web-0
+k get pv
+k delete pv mypv mypv1 mypv2
+k get all
+
+#-----------------
