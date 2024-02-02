@@ -1,0 +1,64 @@
+# Pod Priority
+
+# in the priority classname the priority is given
+# high = 1000, medium = 700, low = 500
+
+k api-resources
+
+# Create Priority class with value 1000
+vi pc.yaml
+# inside
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+        name: mypc
+value: 1000
+
+
+# Create Priority Class
+k apply -f pc.yaml
+k get pc
+k get po
+
+# Add Priority class mypc to pod
+vi pod.yaml
+# inside
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: podpractice
+  name: podpractice
+spec:
+  priorityClassName: mypc
+  containers:
+  - image: sebastiango/firstimage:2.0
+    name: podpractice
+    ports:
+    - containerPort: 8080
+    resources:
+      requests:
+        cpu: 0.1m
+        memory: 200M
+      limits:
+        cpu: 0.2m
+        memory: 300M
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+
+# Create pod
+k apply -f pod.yaml
+k get po
+
+# Delete pod podpractice
+k get all
+k delete po podpractice
+
+# delete resource quota 
+k get quota
+k delete quota myquota
+k get all
+
