@@ -1,0 +1,89 @@
+# Network Policy
+
+# Network policy Yaml file is here
+# https://kubernetes.io/docs/concepts/services-networking/network-policies/
+
+
+# Run three nginx pods
+k run nginx1 --image=nginx --port=80
+k run nginx2 --image=nginx --port=80
+k run nginx3 --image=nginx --port=80
+k get po -o wide
+
+
+#--------
+
+# Login to nginx3 
+k exec -it nginx3 bash
+# inside try to ping nginx2, it is possible
+apt update && apt install iputils-ping -y
+ping 10.36.0.2
+
+k get po -o wide
+
+k exec -it nginx2 bash
+# Login to nginx2 and ping nginx3
+# yes it is possible to ping nginx3
+
+k get po -o wide
+
+# For here only ingress is set to the podSelector, to pods with the labels frontend 
+vim np.yaml
+# inside
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-network-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      role: db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              role: frontend
+
+# Show actual labels
+k get po --show-labels
+
+# Label pods nginx differently
+k label po nginx1 role=db
+k label po nginx2 role=frontend
+k get po --show-labels
+
+# Apply the network policy
+k apply -f np.yaml
+k get po -o wide
+
+
+# Login to pods
+
+# nginx1
+# It is possible to ping nginx2
+k exec -it nginx1 -- ping 10.36.0.2
+# It is possible to ping nginx3
+k exec -it nginx1 --ping 10.44.0.3
+
+# nginx2
+# It is possible to ping nginx1
+k exec -it nginx2 -- ping 10.44.0.2
+# It is possible to ping nginx3
+k exec -it nginx2 -- ping 10.44.0.3
+
+# nginx3
+# It is NOT possible to ping nginx1 because of the network policy
+k exec -it nginx3 -- ping 10.44.0.2
+# It is possible to ping nginx2
+k exec -it nginx3 -- ping 10.36.0.2
+
+# Clean Workspace
+k delete po nginx{1,2,3}
+k get networkpolicy
+
+k delete networkpolicy test-network-policy
+
