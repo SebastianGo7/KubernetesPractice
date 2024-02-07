@@ -1,0 +1,123 @@
+# Liveness and Readiness Probe
+
+# Check k8s documentation
+k explain po.spec.containers.readinessProbe
+
+# Pod set to port 80
+# Set port 81 for the readiness probe to fail
+vim pod_nginx.yaml
+# inside
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: podpractice
+  name: podpractice
+spec:
+  priorityClassName: mypc
+  containers:
+  - image: nginx:latest
+    name: podpractice
+    ports:
+    - containerPort: 80
+    resources:
+            requests:
+                    cpu: 0.1m
+                    memory: 200M
+            limits:
+                    cpu: 0.2m
+                    memory: 300M
+    readinessProbe:
+          httpGet:
+                  path: /
+                  port: 81
+          initialDelaySeconds: 5
+          periodSeconds: 2
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+# Create pod
+k get all
+k apply -f pod_nginx.yaml
+k get po
+# Readiness probe failed, because of the port difference,
+# therefore pod starts running but is not Ready
+k describe po podpractice
+
+k get po
+# Delete pod
+k delete po podpractice
+
+# Now set the readiness probe to 80 and it is same as the application port
+vim pod_nginx.yaml
+# inside
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: podpractice
+  name: podpractice
+spec:
+  priorityClassName: mypc
+  containers:
+  - image: nginx:latest
+    name: podpractice
+    ports:
+    - containerPort: 80
+    resources:
+            requests:
+                    cpu: 0.1m
+                    memory: 200M
+            limits:
+                    cpu: 0.2m
+                    memory: 300M
+    readinessProbe:
+          httpGet:
+                  path: /
+                  port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 2
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+
+# Create pod and it becomes Ready after some seconds
+# only after the application is running
+k apply -f pod_nginx.yaml
+k get po
+
+# Display more information on the readiness Probe
+k explain po.spec.containers.readinessProbe
+
+
+#----------------------------------------------------------
+
+# Node Maintenance
+
+# get node information
+k get po 
+k get po -o wide
+
+# Create a new deployment pod
+k create deploy mydeploy --image=nginx --port=80
+k get all
+# mydeploy is running on worker 1
+k get po -o wide
+
+# Drain worker 1, warning appears that it cant delete the pod
+k drain worker1
+
+# Drain worker 1 with force
+k drain worker1 --force --ignore-daemonsets
+
+# get node information, now the pod is running on the other worker2
+k get no
+k get po -o wide
+
+# uncordon worker 1 to make it available again
+k uncordon worker1
+
